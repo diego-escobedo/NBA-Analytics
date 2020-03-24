@@ -101,7 +101,7 @@ def get_player_names(start_year, end_year, minimum_mpg = 15, minimum_g = 30, ver
         year_players[year] = all_players_names
     return year_players
 
-def gen(name,start_year, end_year, minimum_mpg = 15, minimum_g = 30, verbose = False):
+def gen_p(name,start_year, end_year, minimum_mpg = 15, minimum_g = 30, verbose = False):
     """Given a filename and a range of seasons, create a pickle file of a dictionary containing all the players meting the minutes per game and game requirements
 
     Args:

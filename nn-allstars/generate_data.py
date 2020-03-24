@@ -2,15 +2,13 @@ import pandas as pd
 import numpy as np
 import generate_players
 import utils
-import tabloo
+import tabloo #useful for debugging: tabloo.show(df)
 
 from requests import get
 from basketball_reference_scraper.players import get_stats
 from basketball_reference_scraper.utils import get_player_suffix
 
 from bs4 import BeautifulSoup
-# import tensorflow as tf
-# from tensorflow.keras import layers
 
 def get_game_logs(name, start_date, end_date, playoffs=False, num_games = None):
     """
@@ -113,28 +111,53 @@ def get_pre_allstar_data(name, season):
     return df
 
 def gen_d(start_year, end_year, mpg = 15, g = 30, v = False):
+    """Given a range of seasons, create a pickle file of a dataframe d. Dataframe d has, if player x met the season requirements in season y, a flattened record of x's first 30 games during season y. Return this dataframe
+
+    Args:
+        start year (int): start of data query
+        end_year (int): end of data query
+            ### Note: For a range from the 2009-2010 season to the 2013-2014 season, start_year would be 2010 and end_year would be 2014
+        mpg (int): minimum minutes per game for someone to be include in this list
+        g (int): minimum games for someone to be include in this list
+        v (bool): when True, print out extra things that'll tell us
+
+    Returns:
+        dataframe with a players first 30 games
+
+    Todo:
+        * I HAVE to clean up those argument names, otherwise it will kill me of confusion. Kept egtting exceptionerrors when i had it the same as in generate_players, so figure that out
+    """
     #lets start by naming the file appropriately
     if start_year == end_year:
-        name = f'{start_year}_mpg{mpg}_g{g}'
+        name = f'{start_year}_mpg{mpg}_g{g}_playerlist'
     else:
-        name = f'{start_year}-{end_year}_mpg{mpg}_g{g}'
+        name = f'{start_year}-{end_year}_mpg{mpg}_g{g}_playerlist'
+    #try to load player names, otherwise generate player names, then load
     try:
-        #load the player names
         d = utils.load_dict(name)
     except:
-        #if it doesn't exist, generate player names, then load
-        generate_players.gen(name,start_year, end_year, minimum_mpg = mpg, minimum_g = g, verbose = v)
+        generate_players.gen_p(name,start_year, end_year, minimum_mpg = mpg, minimum_g = g, verbose = v)
         d = utils.load_dict(name)
+    #check of perchance this data already exists, otherwise just continue
+    try:
+        x = pd.read_pickle(f'{name}_data')
+    except Exception:
+        pass
+    else:
+        return x
     #generate labeled player_seasons
     all_players_data = pd.DataFrame()
     for season in d.keys():
+        if v: print(f'starting on season: {season} \n num_players: {len(d[season])}') #vebrosity
+        #enumerate in case we want to stop it at a certain amount of people
         for index, player in enumerate(d[season]):
-            if index == 1: break
-            print(f'starting on player # {index}, {player}')
+            if v: print(f'starting on player # {index}, {player}') #verbosity check
+            #try to get the data,
             try:
                 df = get_pre_allstar_data(player, season)
-            except:
+            except Exception as e:
                 print(f'{player} had an error collecting data')
+                print(e)
                 continue
             player_data = np.array(df).flatten()
             if len(player_data) != 690: #23 categories x 30 games
@@ -145,23 +168,7 @@ def gen_d(start_year, end_year, mpg = 15, g = 30, v = False):
             else:
                 all_players_data = all_players_data.append(pd.Series(np.append(player_data, 0)), ignore_index = True)
     all_players_data.columns = [*all_players_data.columns[:-1], 'target']
+    all_players_data.to_pickle(f'{name}_data')
     return all_players_data
 
 print(gen_d(2012,2012,v=True))
-
-# d = load_dict('year_players')
-#
-# already_checked = set()
-# for year,player_set in d.items():
-#     print(f'{year}')
-#     for player in player_set:
-#         if player in already_checked: continue
-#         already_checked.add(player)
-#         try:
-#             get_player_suffix(player).replace('/', '%2F').replace('.html', '')
-#         except Exception as e:
-#             print(player)
-#             print(e)
-# full_dic = load_dict('year_players')
-# df = generate_data_from_dict(full_dic)
-# df.to_csv('full_dataset.csv')
