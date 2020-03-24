@@ -199,20 +199,22 @@ def generate_data_from_dict(d):
     all_players_data.columns = [*all_players_data.columns[:-1], 'target']
     return all_players_data
 
-
-d = load_dict('year_players')
-
-already_checked = set()
-for year,player_set in d.items():
-    print(f'{year}')
-    for player in player_set:
-        if player in already_checked: continue
-        already_checked.add(player)
-        try:
-            get_player_suffix(player).replace('/', '%2F').replace('.html', '')
-        except Exception as e:
-            print(player)
-            print(e)
-full_dic = load_dict('year_players')
+def gen():
+    request player names
+    generate player_seasons
+# d = load_dict('year_players')
+#
+# already_checked = set()
+# for year,player_set in d.items():
+#     print(f'{year}')
+#     for player in player_set:
+#         if player in already_checked: continue
+#         already_checked.add(player)
+#         try:
+#             get_player_suffix(player).replace('/', '%2F').replace('.html', '')
+#         except Exception as e:
+#             print(player)
+#             print(e)
+# full_dic = load_dict('year_players')
 # df = generate_data_from_dict(full_dic)
 # df.to_csv('full_dataset.csv')
