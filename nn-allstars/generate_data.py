@@ -41,14 +41,14 @@ def get_game_logs(name, start_date, end_date, playoffs=False, num_games = None):
             table = soup.find('table')
             try:
                 df = pd.read_html(str(table))[0]
-            except ValueError:
+            except ValueError as e:
                 continue
             df.rename(columns = {'Date': 'DATE', 'Age': 'AGE', 'Tm': 'TEAM', 'Unnamed: 5': 'HOME/AWAY', 'Opp': 'OPPONENT','Unnamed: 7': 'RESULT', 'GmSc': 'GAME_SCORE'}, inplace=True)
             df['HOME/AWAY'] = df['HOME/AWAY'].apply(lambda x: 'AWAY' if x=='@' else 'HOME')
             df = df[df['Rk']!='Rk']
             try:
                 df = df.drop(['Unnamed: 30'], axis=1)
-            except:
+            except Exception as e:
                 pass
             df = df.loc[(df['DATE'] >= start_date_str) & (df['DATE'] <= end_date_str)]
             active_df = pd.DataFrame(columns = list(df.columns))
@@ -146,21 +146,19 @@ def gen_d(start_year, end_year, mpg = 15, g = 30, v = False):
         return x
     #generate labeled player_seasons
     all_players_data = pd.DataFrame()
+    problems = set()
     for season in d.keys():
         if v: print(f'starting on season: {season} \n num_players: {len(d[season])}') #vebrosity
         #enumerate in case we want to stop it at a certain amount of people
         for index, player in enumerate(d[season]):
             if v: print(f'starting on player # {index}, {player}') #verbosity check
-            #try to get the data,
             try:
                 df = get_pre_allstar_data(player, season)
-            except Exception as e:
-                print(f'{player} had an error collecting data')
-                print(e)
+            except Exception as e: #check to make sure they don't have the empty tables problem
+                problems.add((player, season, 'empty tables'))
                 continue
             player_data = np.array(df).flatten()
-            if len(player_data) != 690: #23 categories x 30 games
-                print(f'{player} had wrong size data')
+            if len(player_data) != 690: #23 categories x 30 games, not raising error because its supposed to be caught
                 continue
             if utils.was_all_star(player, season):
                 all_players_data = all_players_data.append(pd.Series(np.append(player_data, 1)), ignore_index = True)
@@ -168,6 +166,7 @@ def gen_d(start_year, end_year, mpg = 15, g = 30, v = False):
                 all_players_data = all_players_data.append(pd.Series(np.append(player_data, 0)), ignore_index = True)
     all_players_data.columns = [*all_players_data.columns[:-1], 'target']
     all_players_data.to_pickle(f'{name}_data')
+    print(problems)
     return all_players_data
 
-print(gen_d(2012,2012,v=True))
+print(gen_d(2014,2014,v=True))
