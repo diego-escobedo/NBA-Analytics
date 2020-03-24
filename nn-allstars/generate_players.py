@@ -83,7 +83,7 @@ def get_player_names(start_year, end_year, minimum_mpg = 15, minimum_g = 30, ver
     """
     year_players = {}
     for year in range(start_year,end_year+1,1):
-        if status:
+        if verbose:
             print(f'Status: starting on {year}')
         all_players_names = set()
         already = set()
@@ -102,7 +102,7 @@ def get_player_names(start_year, end_year, minimum_mpg = 15, minimum_g = 30, ver
     return year_players
 
 def gen(name,start_year, end_year, minimum_mpg = 15, minimum_g = 30, verbose = False):
-    """Given a filename and a range of seasons, create a pickle file of a dictionary contianing all the players meting the minutes per game and game requirements
+    """Given a filename and a range of seasons, create a pickle file of a dictionary containing all the players meting the minutes per game and game requirements
 
     Args:
         name (str): The name of the pickle file to be saved
@@ -117,7 +117,7 @@ def gen(name,start_year, end_year, minimum_mpg = 15, minimum_g = 30, verbose = F
         None
 
     Todo:
-        * Is tehre an way to not make the arguments of this the exact same as those of the above function??
+        * Is there an way to not make the arguments of this the exact same as those of the above function??
     """
-    x = get_player_names(start_year, end_year, minimum_mpg = minimum_mpg, minimum_g = minimum_g, verbose = verbose)
-    save_dict(x,name)
+    x = get_player_names(start_year, end_year, minimum_mpg, minimum_g, verbose)
+    utils.save_dict(x,name)

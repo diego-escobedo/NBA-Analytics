@@ -19,8 +19,10 @@ Todo:
 """
 import pandas as pd
 import pickle
+
 from bs4 import BeautifulSoup
 from requests import get
+from basketball_reference_scraper.utils import get_player_suffix
 
 def save_dict(d,name):
     """Function to save dictionary as a pickle file in current directory, with given name.

@@ -1,95 +1,29 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import pandas as pd
 import numpy as np
-from requests import get
-import collections
-import matplotlib.pyplot as plt
-import pickle
-import string
+import generate_players
+import utils
 import tabloo
 
-from basketball_reference_scraper.teams import get_roster, get_team_stats, get_opp_stats, get_team_misc
+from requests import get
 from basketball_reference_scraper.players import get_stats
-from basketball_reference_scraper.constants import TEAM_TO_TEAM_ABBR
-from basketball_reference_scraper.utils import get_game_suffix, get_player_suffix
+from basketball_reference_scraper.utils import get_player_suffix
 
 from bs4 import BeautifulSoup
-import tensorflow as tf
-from tensorflow.keras import layers
-
-def save_dict(d,name):
-    """Function to save dictionary as a pickle file in current directory, with given name.
-
-    Args:
-        d (dict): Dictionary to be saved as a pickle file.
-        name (str): The name of the file to be saved.
-
-    Returns:
-        None
-    """
-    with open(f'{name}.p', 'wb') as fp:
-        pickle.dump(d, fp, protocol=pickle.HIGHEST_PROTOCOL)
-
-def load_dict(name):
-    """Function to load a dictionary saved as a pickle file with given name.
-
-    Args:
-        name (str): The name of the file to be loaded.
-
-    Returns:
-        Dictionary loaded from a pickle file.
-    """
-    with open(f'{name}.p', 'rb') as fp:
-        return pickle.load(fp)
-
-def was_all_star(name, season):
-    """
-    Will tell you whether a player had an all-star season in the season that ends on the year given (i.e. if you pass 2018 it will tell you whether the player was an all-star in the 2017-2018 season)
-
-    Parameters:
-    name (str): Name of player whos ame you want
-    season (int): Season to check if the player was an all-star
-
-    Returns:
-    all-star (bool): True if player was an all-star, False otherwise
-   """
-    name_code = get_player_suffix(name).replace('/players/', '')
-    name_code = name_code[2:]
-    last_initial = name_code[0]
-    selector = 'div_all_star'
-    url = f'https://widgets.sports-reference.com/wg.fcgi?css=1&site=bbr&url=%2Fplayers%2F{last_initial}%2F{name_code}&div={selector}'
-    r = get(url)
-    if r.status_code==200:
-        soup = BeautifulSoup(r.content, 'html.parser')
-        table = soup.find('table')
-        try:
-            df = pd.read_html(str(table))[0]
-        except ValueError:
-            return False
-        all_star_seasons = list(str(x) for x in list(df['Season']))
-        season_in_question = '{}-{}'.format(season-1,str(season)[-2:])
-        if season_in_question in all_star_seasons:
-            return True
-        return False
-    else:
-        return False
+# import tensorflow as tf
+# from tensorflow.keras import layers
 
 def get_game_logs(name, start_date, end_date, playoffs=False, num_games = None):
     """
     Will get the raw gamelogs for a given player in the given date ranges
 
-    Parameters:
-    name (str): Name of player whose games you want
-    start_date (str): Inclusive start date of game logs in format 'YYYY-MM-DD'
-    end_date (str): Inclusive end date of game logs in format 'YYYY-MM-DD'
-    playoffs (bool): Whetehr or not to include playoff games
+    Args:
+        name (str): Name of player whose games you want
+        start_date (str): Inclusive start date of game logs in format 'YYYY-MM-DD'
+        end_date (str): Inclusive end date of game logs in format 'YYYY-MM-DD'
+        playoffs (bool): Whetehr or not to include playoff games
 
     Returns:
-    final_df (Pandas DataFrame): return record of games between the dates, including categories ['Rk', 'G', 'DATE', 'AGE', 'TEAM', 'HOME/AWAY', 'OPPONENT', 'RESULT', 'GS',
-       'MP', 'FG', 'FGA', 'FG%', '3P', '3PA', '3P%', 'FT', 'FTA', 'FT%', 'ORB',
-       'DRB', 'TRB', 'AST', 'STL', 'BLK', 'TOV', 'PF', 'PTS', 'GAME_SCORE',
-       '+/-']
+        returns a dataframe with a record of games between the dates, including categories ['Rk', 'G', 'DATE', 'AGE', 'TEAM', 'HOME/AWAY', 'OPPONENT', 'RESULT', 'GS', 'MP', 'FG', 'FGA', 'FG%', '3P', '3PA', '3P%', 'FT', 'FTA', 'FT%', 'ORB', 'DRB', 'TRB', 'AST', 'STL', 'BLK', 'TOV', 'PF', 'PTS', 'GAME_SCORE', '+/-']
    """
     suffix = get_player_suffix(name).replace('/', '%2F').replace('.html', '')
     start_date_str = start_date
@@ -137,16 +71,14 @@ def get_game_logs(name, start_date, end_date, playoffs=False, num_games = None):
 
 def get_pre_allstar_data(name, season):
     """
-    Will get the gamelogs from the start of the season until January 10th (usually around when All-Star voting is close to being decided). Also cleans these gamelogs to give them all numeric values, removes certain categories that might not be useful in ML, and turns string fields into number fields.
+    Will get the gamelogs from the start of the season until the 30th game. Also cleans these gamelogs to give them all numeric values, removes certain categories that might not be useful in ML, and turns string fields into number fields.
 
-    Parameters:
-    name (str): Name of player whos ame you want
-    season (int): Season to get the gamelogs from, from the first game of the season up to the 10th of January, inclusive.
+    Args:
+        name (str): Name of player whos ame you want
+        season (int): Season to get the gamelogs from, from the first game of the season up to the 10th of January, inclusive.
 
     Returns:
-    final_df (Pandas DataFrame): return record of games before Jan 10th, including categories ['AGE', 'HOME', 'RESULT', 'MP', '3P', '3PA', '3P%', 'FT',
-       'FTA', 'FT%', 'ORB', 'DRB', 'AST', 'STL', 'BLK', 'TOV', 'PF', '+/-',
-       '2P', '2PA', '2P%', 'MOV']
+        dataframe of games before Jan 10th, including categories ['AGE', 'HOME', 'RESULT', 'MP', '3P', '3PA', '3P%', 'FT', 'FTA', 'FT%', 'ORB', 'DRB', 'AST', 'STL', 'BLK', 'TOV', 'PF', '+/-', '2P', '2PA', '2P%', 'MOV']
     """
     def min_sec_to_frac_mins(st):
         if st == 0: return 0
@@ -158,7 +90,7 @@ def get_pre_allstar_data(name, season):
 
     start_date = '-'.join((str(season-1),'08', '01'))
     end_date = '-'.join((str(season),'02', '20'))
-    df = get_game_logs(name, start_date, end_date, num_games = 41)
+    df = get_game_logs(name, start_date, end_date, num_games = 30)
     df.rename(columns={'HOME/AWAY': "HOME", "Rk" : 'NUM_GAME'}, inplace = True)
     df = df.astype({"FG": int,"FGA": int, "3P": int, "3PA": int, "FG%": float, "3P%": float, "FT": int, "FTA": int, "FT%": float, "ORB": int, "AST": int, "STL": int, "BLK": int, "TOV": int, "PF": int, "+/-": int, 'NUM_GAME': int})
     df['2P'] = df['FG'] - df['3P']
@@ -180,7 +112,20 @@ def get_pre_allstar_data(name, season):
     df['MOV'] = df['MOV'].apply(lambda x : int(x[1:-1]))
     return df
 
-def generate_data_from_dict(d):
+def gen_d(start_year, end_year, mpg = 15, g = 30, v = False):
+    #lets start by naming the file appropriately
+    if start_year == end_year:
+        name = f'{start_year}_mpg{mpg}_g{g}'
+    else:
+        name = f'{start_year}-{end_year}_mpg{mpg}_g{g}'
+    try:
+        #load the player names
+        d = utils.load_dict(name)
+    except:
+        #if it doesn't exist, generate player names, then load
+        generate_players.gen(name,start_year, end_year, minimum_mpg = mpg, minimum_g = g, verbose = v)
+        d = utils.load_dict(name)
+    #generate labeled player_seasons
     all_players_data = pd.DataFrame()
     for season in d.keys():
         for index, player in enumerate(d[season]):
@@ -189,19 +134,21 @@ def generate_data_from_dict(d):
             try:
                 df = get_pre_allstar_data(player, season)
             except:
+                print(f'{player} had an error collecting data')
                 continue
             player_data = np.array(df).flatten()
-            if len(player_data) != 943: continue
-            if was_all_star(player, season):
+            if len(player_data) != 690: #23 categories x 30 games
+                print(f'{player} had wrong size data')
+                continue
+            if utils.was_all_star(player, season):
                 all_players_data = all_players_data.append(pd.Series(np.append(player_data, 1)), ignore_index = True)
             else:
                 all_players_data = all_players_data.append(pd.Series(np.append(player_data, 0)), ignore_index = True)
     all_players_data.columns = [*all_players_data.columns[:-1], 'target']
     return all_players_data
 
-def gen():
-    request player names
-    generate player_seasons
+print(gen_d(2012,2012,v=True))
+
 # d = load_dict('year_players')
 #
 # already_checked = set()
