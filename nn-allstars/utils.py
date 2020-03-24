@@ -19,6 +19,7 @@ Todo:
 """
 import pandas as pd
 import pickle
+import unicodedata
 
 from bs4 import BeautifulSoup
 from requests import get
@@ -132,3 +133,20 @@ def was_all_star(name, season):
         return False
     else:
         return False
+
+def get_player_suffix(name):
+    """
+    Quick 1-liner given that its a simple function. Given a name, return the bbref suffix that allows us to find their information. holy SHIT this took me so long to figure out.
+    """
+    normalized_name = unicodedata.normalize('NFD', name).encode('ascii', 'ignore').decode("utf-8")
+    names = normalized_name.split(' ')[1:]
+    for last_name in names:
+        initial = last_name[0].lower()
+        r = get(f'https://www.basketball-reference.com/players/{initial}')
+        if r.status_code==200:
+            soup = BeautifulSoup(r.content, 'html.parser')
+            for table in soup.find_all('table', attrs={'id': 'players'}):
+                for anchor in table.find_all('a'):
+                    if unicodedata.normalize('NFD', anchor.text).encode('ascii', 'ignore').decode("utf-8") in name:
+                        suffix = anchor.attrs['href']
+                        return suffix

@@ -6,7 +6,6 @@ import tabloo #useful for debugging: tabloo.show(df)
 
 from requests import get
 from basketball_reference_scraper.players import get_stats
-from basketball_reference_scraper.utils import get_player_suffix
 
 from bs4 import BeautifulSoup
 
@@ -23,7 +22,7 @@ def get_game_logs(name, start_date, end_date, playoffs=False, num_games = None):
     Returns:
         returns a dataframe with a record of games between the dates, including categories ['Rk', 'G', 'DATE', 'AGE', 'TEAM', 'HOME/AWAY', 'OPPONENT', 'RESULT', 'GS', 'MP', 'FG', 'FGA', 'FG%', '3P', '3PA', '3P%', 'FT', 'FTA', 'FT%', 'ORB', 'DRB', 'TRB', 'AST', 'STL', 'BLK', 'TOV', 'PF', 'PTS', 'GAME_SCORE', '+/-']
    """
-    suffix = get_player_suffix(name).replace('/', '%2F').replace('.html', '')
+    suffix = utils.get_player_suffix(name).replace('/', '%2F').replace('.html', '')
     start_date_str = start_date
     end_date_str = end_date
     start_date = pd.to_datetime(start_date)
