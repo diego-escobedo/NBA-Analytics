@@ -83,6 +83,7 @@ def get_player_names(start_year, end_year, minimum_mpg = 15, minimum_g = 30, ver
     """
     year_players = {}
     for year in range(start_year,end_year+1,1):
+        if year == 2012: continue #this season had a lockout, better not include weird data
         if verbose:
             print(f'Status: starting on {year}')
         all_players_names = set()
@@ -91,13 +92,14 @@ def get_player_names(start_year, end_year, minimum_mpg = 15, minimum_g = 30, ver
             if team in already: continue
             try:
                 rs = get_roster_stats(team,year)
+            except:
+                continue
+            else:
                 roster_stats_filtered = rs.loc[(rs['MP'].astype(float) >= minimum_mpg)&(rs['G'].astype(float) >= minimum_mpg)]
                 team_player_names = list(roster_stats_filtered['PLAYER'])
                 team_player_names = list(map(utils.prune_weird_names, team_player_names))
                 all_players_names.update(team_player_names)
                 already.add(team)
-            except:
-                continue
         year_players[year] = all_players_names
     return year_players
 

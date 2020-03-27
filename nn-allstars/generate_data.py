@@ -166,7 +166,7 @@ def gen_d(start_year, end_year, mpg = 15, g = 30, v = False):
                 all_players_data = all_players_data.append(pd.Series(np.append(player_data, 0)), ignore_index = True)
     all_players_data.columns = [*all_players_data.columns[:-1], 'target']
     all_players_data.to_pickle(f'{name}_data')
-    print(problems)
+    print(problems)     
     return all_players_data
 
-print(gen_d(2014,2014,v=True))
+print(gen_d(2000,2019,v=True))

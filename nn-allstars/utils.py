@@ -184,5 +184,3 @@ def get_game_logs(name, start_date, end_date, playoffs=False):
                     final_df = pd.DataFrame(columns=list(active_df.columns))
                 final_df = final_df.append(active_df)
     return final_df
-
-print(was_all_star('Giannis Antetokounmpo', 2014))
